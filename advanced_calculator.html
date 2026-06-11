@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Interactive Calculator</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+        /* Custom scrollbar for history and display */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.25);
+            border-radius: 9999px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.45);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen w-full flex flex-col items-center justify-center p-3 sm:p-6 selection:bg-indigo-500/30">
+
+    <!-- Desktop Restore Button (Shown only when calculator is closed) -->
+    <button id="restore-calc" class="hidden px-6 py-3 bg-slate-900/80 hover:bg-slate-800 border border-slate-800/80 text-indigo-400 font-semibold rounded-2xl shadow-2xl transition-all active:scale-95 flex items-center gap-2">
+        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+        Launch Calculator
+    </button>
+
+    <!-- Calculator Card with responsive sizing and flexible height -->
+    <div id="calc-card" class="w-full max-w-lg bg-slate-900/60 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-5 sm:p-6 shadow-2xl flex flex-col gap-4 sm:gap-5 transition-all duration-300">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-800/60 pb-3">
+            <!-- Window Control Buttons -->
+            <div class="flex items-center gap-1.5">
+                <!-- Close Button -->
+                <button id="window-close" class="group relative h-2.5 w-2.5 rounded-full bg-red-500 hover:bg-red-600 transition-colors focus:outline-none">
+                    <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950/95 border border-slate-800/80 px-2 py-1 text-[9px] font-medium text-slate-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-xl shadow-black/40">
+                        Close Calculator
+                    </span>
+                </button>
+                <!-- Minimize Button -->
+                <button id="window-minimize" class="group relative h-2.5 w-2.5 rounded-full bg-yellow-500 hover:bg-yellow-600 transition-colors focus:outline-none">
+                    <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950/95 border border-slate-800/80 px-2 py-1 text-[9px] font-medium text-slate-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-xl shadow-black/40">
+                        Minimize
+                    </span>
+                </button>
+                <!-- Maximize Button -->
+                <button id="window-maximize" class="group relative h-2.5 w-2.5 rounded-full bg-green-500 hover:bg-green-600 transition-colors focus:outline-none">
+                    <span class="pointer-events-none absolute top-full left-1/2 z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950/95 border border-slate-800/80 px-2 py-1 text-[9px] font-medium text-slate-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-xl shadow-black/40">
+                        Maximize
+                    </span>
+                </button>
+            </div>
+            <span id="calc-title" class="text-[10px] font-semibold tracking-widest text-slate-400 uppercase select-none">Interactive Basic Calc v2.2</span>
+            
+            <!-- Mode Toggle Button -->
+            <button id="toggle-advanced" class="group relative text-[10px] font-medium px-2.5 py-1 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 transition-all">
+                Scientific
+                <span class="pointer-events-none absolute top-full right-0 z-50 mt-2 whitespace-nowrap rounded-lg bg-slate-950/95 border border-slate-800/80 px-2 py-1.5 text-[9px] font-medium text-slate-300 opacity-0 transition-opacity duration-200 group-hover:opacity-100 shadow-xl shadow-black/40">
+                    Switch Calculator Mode
+                </span>
+            </button>
+        </div>
+
+        <!-- Collapsible Content Wrapper (Handles Minimize functionality) -->
+        <div id="calc-content" class="flex flex-col gap-4 sm:gap-5 transition-all duration-300 origin-top">
+            <!-- Displays: Optimized to expand naturally -->
+            <div class="flex flex-col items-end justify-end min-h-[90px] px-2 overflow-hidden">
+                <!-- Formula Display -->
+                <div id="formula" class="text-xs sm:text-sm font-medium text-slate-400/80 tracking-wide min-h-[16px] max-w-full overflow-x-auto whitespace-nowrap custom-scrollbar"></div>
+                <!-- Current Input Display -->
+                <div id="display" class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight text-white mt-1 max-w-full overflow-x-auto whitespace-nowrap custom-scrollbar scroll-smooth">0</div>
+            </div>
+
+            <!-- Workspace Layout: Dynamic Grid System -->
+            <div class="flex flex-col gap-3">
+                
+                <!-- Scientific Panel (Toggled smoothly) -->
+                <div id="scientific-panel" class="hidden grid grid-cols-5 gap-2 border-b border-slate-800/40 pb-3 transition-all duration-300">
+                    <button data-val="sin" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        sin
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Sine (deg)</span>
+                    </button>
+                    <button data-val="cos" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        cos
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Cosine (deg)</span>
+                    </button>
+                    <button data-val="tan" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        tan
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Tangent (deg)</span>
+                    </button>
+                    <button data-val="log" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        log
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Logarithm (Base 10)</span>
+                    </button>
+                    <button data-val="ln" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        ln
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Natural Log (Base e)</span>
+                    </button>
+                    <button data-val="^" class="op-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        xʸ
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Power of Y</span>
+                    </button>
+                    <button data-val="sqrt" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        √
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Square Root</span>
+                    </button>
+                    <button data-val="!" class="sci-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        x!
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Factorial</span>
+                    </button>
+                    <button data-val="pi" class="num-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        π
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Pi (~3.14159)</span>
+                    </button>
+                    <button data-val="e" class="num-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-300 py-2 rounded-xl font-medium transition-all text-xs active:scale-95">
+                        e
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[9px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Euler's Constant (~2.71828)</span>
+                    </button>
+                </div>
+
+                <!-- Main standard grid: 5 columns (4 columns of numbers/constants/clear, 1 column of operators) -->
+                <div class="grid grid-cols-5 gap-2 sm:gap-2.5">
+                    <!-- Row 1 -->
+                    <button data-val="7" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">7</button>
+                    <button data-val="8" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">8</button>
+                    <button data-val="9" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">9</button>
+                    <button id="btn-clear" class="group relative bg-red-500/10 hover:bg-red-500/20 text-red-400 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-sm sm:text-base">
+                        AC
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Clear All Fields</span>
+                    </button>
+                    <button data-val="/" class="op-btn group relative bg-indigo-500 hover:bg-indigo-600 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-lg sm:text-xl">
+                        ÷
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Division</span>
+                    </button>
+
+                    <!-- Row 2 -->
+                    <button data-val="4" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">4</button>
+                    <button data-val="5" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">5</button>
+                    <button data-val="6" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">6</button>
+                    <button id="btn-backspace" class="group relative bg-slate-800/80 hover:bg-slate-800 text-slate-300 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-sm sm:text-base">
+                        ⌫
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Backspace</span>
+                    </button>
+                    <button data-val="*" class="op-btn group relative bg-indigo-500 hover:bg-indigo-600 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-lg sm:text-xl">
+                        ×
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Multiplication</span>
+                    </button>
+
+                    <!-- Row 3 -->
+                    <button data-val="1" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">1</button>
+                    <button data-val="2" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">2</button>
+                    <button data-val="3" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">3</button>
+                    <button data-val="%" class="op-btn group relative bg-slate-800/80 hover:bg-slate-300 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-sm sm:text-base">
+                        %
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Modulo (Remainder)</span>
+                    </button>
+                    <button data-val="-" class="op-btn group relative bg-indigo-500 hover:bg-indigo-600 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-lg sm:text-xl">
+                        −
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Subtraction</span>
+                    </button>
+
+                    <!-- Row 4 -->
+                    <button data-val="0" class="num-btn bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg col-span-2">0</button>
+                    <button data-val="." class="num-btn group relative bg-slate-800/40 hover:bg-slate-800 text-slate-200 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-base sm:text-lg">
+                        .
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Decimal point</span>
+                    </button>
+                    <button id="btn-equals" class="group relative bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-3 sm:py-4 rounded-xl sm:rounded-2xl font-bold transition-all active:scale-95 text-lg sm:text-xl">
+                        =
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Equal / Calculate</span>
+                    </button>
+                    <button data-val="+" class="op-btn group relative bg-indigo-500 hover:bg-indigo-600 text-white py-3 sm:py-4 rounded-xl sm:rounded-2xl font-semibold transition-all active:scale-95 text-lg sm:text-xl">
+                        +
+                        <span class="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-slate-950 border border-slate-800 px-2 py-1 text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-xl">Addition</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- History Section -->
+            <div class="border-t border-slate-800/60 pt-3 flex flex-col gap-1.5 overflow-hidden">
+                <span class="text-[10px] font-semibold tracking-wider text-slate-500 uppercase select-none">Recent Calculations</span>
+                <div id="history-list" class="max-h-[60px] overflow-y-auto flex flex-col gap-1 custom-scrollbar text-xs text-slate-400">
+                    <div class="text-[10px] text-slate-600 italic">No historical computations yet.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        const display = document.getElementById('display');
+        const formulaDisplay = document.getElementById('formula');
+        const scientificPanel = document.getElementById('scientific-panel');
+        const toggleBtn = document.getElementById('toggle-advanced');
+        const calcTitle = document.getElementById('calc-title');
+        const historyList = document.getElementById('history-list');
+
+        // Window elements
+        const calcCard = document.getElementById('calc-card');
+        const calcContent = document.getElementById('calc-content');
+        const restoreBtn = document.getElementById('restore-calc');
+        const closeBtn = document.getElementById('window-close');
+        const minimizeBtn = document.getElementById('window-minimize');
+        const maximizeBtn = document.getElementById('window-maximize');
+
+        let currentInput = '0';
+        let previousInput = '';
+        let formula = '';
+        let currentOperator = '';
+        let shouldResetDisplay = false;
+        let history = [];
+        let isMaximized = false;
+
+        // --- Window Actions ---
+        
+        // Close (Hide calculator, show desktop launch button)
+        closeBtn.addEventListener('click', () => {
+            calcCard.classList.add('scale-95', 'opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                calcCard.classList.add('hidden');
+                restoreBtn.classList.remove('hidden');
+            }, 150);
+        });
+
+        // Restore Calculator
+        restoreBtn.addEventListener('click', () => {
+            restoreBtn.classList.add('hidden');
+            calcCard.classList.remove('hidden');
+            setTimeout(() => {
+                calcCard.classList.remove('scale-95', 'opacity-0', 'pointer-events-none');
+            }, 50);
+        });
+
+        // Minimize (Toggles dynamic slide-up transition of calc contents)
+        minimizeBtn.addEventListener('click', () => {
+            calcContent.classList.toggle('hidden');
+        });
+
+        // Maximize (Toggles scale limits and ensures content is un-minimized)
+        maximizeBtn.addEventListener('click', () => {
+            isMaximized = !isMaximized;
+            if (isMaximized) {
+                calcCard.classList.replace('max-w-lg', 'max-w-2xl');
+            } else {
+                calcCard.classList.replace('max-w-2xl', 'max-w-lg');
+            }
+            // Ensure the content layout is visible (un-minimize) when maximizing
+            calcContent.classList.remove('hidden');
+        });
+
+        // --- Basic Operations Toggling ---
+        
+        // Toggle Scientific Mode with dynamic label and title swapping
+        toggleBtn.addEventListener('click', () => {
+            const isHidden = scientificPanel.classList.toggle('hidden');
+            toggleBtn.textContent = isHidden ? 'Scientific' : 'Basic';
+            toggleBtn.classList.toggle('bg-indigo-500/10', !isHidden);
+            toggleBtn.classList.toggle('text-indigo-400', !isHidden);
+            calcTitle.textContent = isHidden ? 'Interactive Basic Calc v2.2' : 'Interactive Scientific Calc v2.2';
+        });
+
+        // Numeric Inputs
+        document.querySelectorAll('.num-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const value = btn.getAttribute('data-val');
+                inputNum(value);
+            });
+        });
+
+        // Standard Operators
+        document.querySelectorAll('.op-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const operator = btn.getAttribute('data-val');
+                handleOperator(operator);
+            });
+        });
+
+        // Scientific Operators
+        document.querySelectorAll('.sci-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const operator = btn.getAttribute('data-val');
+                handleScientific(operator);
+            });
+        });
+
+        // Clear and Backspace
+        document.getElementById('btn-clear').addEventListener('click', clearAll);
+        document.getElementById('btn-backspace').addEventListener('click', backspace);
+        document.getElementById('btn-equals').addEventListener('click', evaluateExpression);
+
+        // Core Calculator Functions
+        function inputNum(val) {
+            if (val === 'pi') val = Math.PI.toString();
+            if (val === 'e') val = Math.E.toString();
+
+            if (currentInput === '0' || shouldResetDisplay) {
+                currentInput = val;
+                shouldResetDisplay = false;
+            } else {
+                if (val === '.' && currentInput.includes('.')) return; // No double decimals
+                currentInput += val;
+            }
+            updateDisplay();
+        }
+
+        function handleOperator(op) {
+            if (currentOperator && !shouldResetDisplay) {
+                evaluateExpression();
+            }
+            previousInput = currentInput;
+            currentOperator = op;
+            formula = `${previousInput} ${op}`;
+            formulaDisplay.textContent = formula;
+            shouldResetDisplay = true;
+        }
+
+        function handleScientific(op) {
+            const num = parseFloat(currentInput);
+            let result = 0;
+
+            switch(op) {
+                case 'sin':
+                    result = Math.sin(num * Math.PI / 180); // standard degree adjustment
+                    formula = `sin(${num})`;
+                    break;
+                case 'cos':
+                    result = Math.cos(num * Math.PI / 180);
+                    formula = `cos(${num})`;
+                    break;
+                case 'tan':
+                    result = Math.tan(num * Math.PI / 180);
+                    formula = `tan(${num})`;
+                    break;
+                case 'log':
+                    result = Math.log10(num);
+                    formula = `log(${num})`;
+                    break;
+                case 'ln':
+                    result = Math.log(num);
+                    formula = `ln(${num})`;
+                    break;
+                case 'sqrt':
+                    result = Math.sqrt(num);
+                    formula = `√(${num})`;
+                    break;
+                case '!':
+                    result = factorial(num);
+                    formula = `${num}!`;
+                    break;
+            }
+
+            if (isNaN(result) || !isFinite(result)) {
+                currentInput = "Error";
+            } else {
+                currentInput = parseFloat(result.toFixed(8)).toString();
+                saveHistory(`${formula} = ${currentInput}`);
+            }
+            formulaDisplay.textContent = formula;
+            updateDisplay();
+            shouldResetDisplay = true;
+        }
+
+        function factorial(n) {
+            if (n < 0 || !Number.isInteger(n)) return NaN;
+            if (n === 0 || n === 1) return 1;
+            let res = 1;
+            for (let i = 2; i <= n; i++) res *= i;
+            return res;
+        }
+
+        function clearAll() {
+            currentInput = '0';
+            previousInput = '';
+            formula = '';
+            currentOperator = '';
+            shouldResetDisplay = false;
+            formulaDisplay.textContent = '';
+            updateDisplay();
+        }
+
+        // Deletes single last character
+        function backspace() {
+            if (shouldResetDisplay) return;
+            if (currentInput.length > 1) {
+                currentInput = currentInput.slice(0, -1);
+            } else {
+                currentInput = '0';
+            }
+            updateDisplay();
+        }
+
+        function evaluateExpression() {
+            if (!currentOperator || shouldResetDisplay) return;
+
+            const prev = parseFloat(previousInput);
+            const current = parseFloat(currentInput);
+            let result = 0;
+
+            switch (currentOperator) {
+                case '+':
+                    result = prev + current;
+                    break;
+                case '-':
+                    result = prev - current;
+                    break;
+                case '*':
+                    result = prev * current;
+                    break;
+                case '/':
+                    if (current === 0) {
+                        currentInput = "Cannot div by 0";
+                        updateDisplay();
+                        shouldResetDisplay = true;
+                        return;
+                    }
+                    result = prev / current;
+                    break;
+                case '%':
+                    result = prev % current;
+                    break;
+                case '^':
+                    result = Math.pow(prev, current);
+                    break;
+                default:
+                    return;
+            }
+
+            formula = `${previousInput} ${currentOperator} ${currentInput}`;
+            formulaDisplay.textContent = formula;
+
+            // Trim precision
+            currentInput = parseFloat(result.toFixed(8)).toString();
+            saveHistory(`${formula} = ${currentInput}`);
+
+            currentOperator = '';
+            updateDisplay();
+            shouldResetDisplay = true;
+        }
+
+        function updateDisplay() {
+            display.textContent = currentInput;
+            display.scrollLeft = display.scrollWidth;
+        }
+
+        // Save Calculation to History
+        function saveHistory(calculation) {
+            history.unshift(calculation);
+            if (history.length > 5) history.pop();
+            renderHistory();
+        }
+
+        // Render Calculations list
+        function renderHistory() {
+            historyList.innerHTML = '';
+            if (history.length === 0) {
+                historyList.innerHTML = `<div class="text-[10px] text-slate-600 italic">No historical computations yet.</div>`;
+                return;
+            }
+            history.forEach(item => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between border-b border-slate-800/40 pb-0.5 last:border-0";
+                div.innerHTML = `<span class="truncate">${item.split(' = ')[0]}</span><span class="font-semibold text-indigo-400 ml-2">${item.split(' = ')[1]}</span>`;
+                historyList.appendChild(div);
+            });
+        }
+
+        // Physical Keyboard Event Binding
+        window.addEventListener('keydown', (e) => {
+            if (e.key >= '0' && e.key <= '9') inputNum(e.key);
+            if (e.key === '.') inputNum('.');
+            if (e.key === '+') handleOperator('+');
+            if (e.key === '-') handleOperator('-');
+            if (e.key === '*') handleOperator('*');
+            if (e.key === '/') handleOperator('/');
+            if (e.key === '%') handleOperator('%');
+            if (e.key === 'Enter' || e.key === '=') evaluateExpression();
+            if (e.key === 'Backspace') backspace();
+            if (e.key === 'Escape') clearAll();
+        });
+    </script>
+</body>
+</html>
