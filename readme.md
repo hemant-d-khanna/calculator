@@ -1,4 +1,4 @@
-Build a modern, highly interactive web application for an advanced calculator using HTML, Tailwind CSS, and vanilla JavaScript in a single self-contained file. 
+Build a modern, highly interactive web application for an advanced calculator using HTML, Tailwind CSS, and vanilla JavaScript in a single self-contained file. This entire application is built using Canvas on Gemini AI.
 
 Key Requirements:
 1. DESIGN & LAYOUT:
@@ -17,7 +17,7 @@ Key Requirements:
      * Yellow (Minimize): Collapses the display, workspace grid, and history panel while keeping the header visible.
      * Green (Maximize): Alternates the layout between a compact width (max-w-lg) and a wide layout (max-w-2xl). Maximize must automatically un-minimize the content container if it was hidden.
 
-4. TOOLTIPS (HOVER BALLOONS):
+4. TOOLTIPS:
    - Add sleek, custom Tailwind absolute-positioned hover tooltips for all non-numeric buttons (Close, Minimize, Maximize, Scientific/Basic toggle, standard operators, modulo, scientific operators, decimal, clear, backspace, and equals). 
    - Tooltips must be styled like modern glassmorphic capsules and use `pointer-events-none` to never obstruct clicks.
 
